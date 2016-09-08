@@ -17,15 +17,16 @@ void Worker() {
 
   // Wait until main thread sends data.
   cv.wait(lock, [] { return ready; });
+  // Equivalent to:
   //while (!ready) {
   //  cv.wait(lock);
   //}
 
   // After wait, we own the lock.
-  std::cout << "Worker thread is processing data..." << std::endl;
+  std::cout << "工作线程正在处理数据..." << std::endl;
   // Sleep 1 second to simulate data processing.
   boost::this_thread::sleep_for(boost::chrono::seconds(1));
-  data += " after processing";
+  data += " 已处理";
 
   // Send data back to the main thread.
   processed = true;

@@ -18,3 +18,8 @@ add_executable(cv1 cv1.cpp)
 add_executable(cv2 cv2.cpp)
 
 add_executable(bounded_buffer bounded_buffer.cpp)
+
+add_executable(win32_semaphore win32_semaphore.cpp)
+add_executable(semaphore semaphore.cpp)
+
+add_executable(pool pool.cpp)
