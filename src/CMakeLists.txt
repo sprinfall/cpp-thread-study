@@ -23,3 +23,6 @@ add_executable(win32_semaphore win32_semaphore.cpp)
 add_executable(semaphore semaphore.cpp)
 
 add_executable(pool pool.cpp)
+
+add_executable(shared_mutex shared_mutex.cpp)
+add_executable(rw_lock rw_lock.cpp)
