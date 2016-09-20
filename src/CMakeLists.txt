@@ -24,5 +24,5 @@ add_executable(semaphore semaphore.cpp)
 
 add_executable(pool pool.cpp)
 
-add_executable(shared_mutex shared_mutex.cpp)
-add_executable(rw_lock rw_lock.cpp)
+add_executable(rwlock1 rwlock1.cpp)
+add_executable(rwlock2 rwlock2.cpp)

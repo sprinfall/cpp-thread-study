@@ -3,9 +3,10 @@
 
 // For this example, boost::atomic<> should be a better choice.
 
-class ThreadSafeCounter {
+class Counter {
 public:
-  ThreadSafeCounter() = default;
+  Counter() : value_(0) {
+  }
 
   // Multiple threads/readers can read the counter's value at the same time.
   size_t Get() const {
@@ -15,6 +16,7 @@ public:
 
   // Only one thread/writer can increment/write the counter's value.
   void Increase() {
+    // You can also use lock_guard here.
     boost::unique_lock<boost::shared_mutex> lock(mutex_);
     value_++;
   }
@@ -27,36 +29,36 @@ public:
 
 private:
   mutable boost::shared_mutex mutex_;
-  size_t value_ = 0;
+  size_t value_;
 };
 
-boost::mutex io_mutex;
+boost::mutex g_io_mutex;
 
-int main() {
-  ThreadSafeCounter counter;
+void Worker(Counter& counter) {
+  for (int i = 0; i < 3; ++i) {
+    counter.Increase();
+    size_t value = counter.Get();
 
-  auto increment_and_print = [&counter]() {
-    for (int i = 0; i < 3; i++) {
-      counter.Increase();
-      size_t value = counter.Get();
-
-      io_mutex.lock();
-      std::cout << boost::this_thread::get_id() << ' ' << value << std::endl;
-      io_mutex.unlock();
-    }
-  };
-
-  boost::thread thread1(increment_and_print);
-  boost::thread thread2(increment_and_print);
-
-  thread1.join();
-  thread2.join();
+    boost::lock_guard<boost::mutex> lock(g_io_mutex);
+    std::cout << boost::this_thread::get_id() << ' ' << value << std::endl;
+  }
 }
 
-// Output:
-// 27a8 1
-// 27a8 3
-// 2434 2
-// 27a8 4
-// 2434 5
-// 2434 6
+int main() {
+  Counter counter;
+
+  boost::thread_group threads;
+  threads.create_thread(boost::bind(Worker, boost::ref(counter)));
+  threads.create_thread(boost::bind(Worker, boost::ref(counter)));
+
+  threads.join_all();
+  return 0;
+}
+
+// Output (Random):
+// 2978 1
+// 4114 2
+// 2978 3
+// 4114 4
+// 4114 6
+// 2978 5
