@@ -1,5 +1,8 @@
 #include <iostream>
-#include <boost/thread.hpp>
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
+#include <vector>
 
 // For this example, boost::atomic<> should be a better choice.
 
@@ -10,48 +13,55 @@ public:
 
   // Multiple threads/readers can read the counter's value at the same time.
   size_t Get() const {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    std::shared_lock<std::shared_mutex> lock(mutex_);
     return value_;
   }
 
   // Only one thread/writer can increment/write the counter's value.
   void Increase() {
     // You can also use lock_guard here.
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     value_++;
   }
 
   // Only one thread/writer can reset/write the counter's value.
   void Reset() {
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     value_ = 0;
   }
 
 private:
-  mutable boost::shared_mutex mutex_;
+  mutable std::shared_mutex mutex_;
   size_t value_;
 };
 
-boost::mutex g_io_mutex;
+std::mutex g_io_mutex;
 
 void Worker(Counter& counter) {
   for (int i = 0; i < 3; ++i) {
     counter.Increase();
     size_t value = counter.Get();
 
-    boost::lock_guard<boost::mutex> lock(g_io_mutex);
-    std::cout << boost::this_thread::get_id() << ' ' << value << std::endl;
+    std::lock_guard<std::mutex> lock(g_io_mutex);
+    std::cout << std::this_thread::get_id() << ' ' << value << std::endl;
   }
 }
 
 int main() {
+  const std::size_t SIZE = 2;
+
   Counter counter;
 
-  boost::thread_group threads;
-  threads.create_thread(boost::bind(Worker, boost::ref(counter)));
-  threads.create_thread(boost::bind(Worker, boost::ref(counter)));
+  std::vector<std::thread> v;
+  v.reserve(SIZE);
 
-  threads.join_all();
+  v.emplace_back(&Worker, std::ref(counter));
+  v.emplace_back(&Worker, std::ref(counter));
+
+  for (std::thread& t : v) {
+    t.join();
+  }
+
   return 0;
 }
 

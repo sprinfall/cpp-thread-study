@@ -1,28 +1,34 @@
 #include <iostream>
-#include <boost/thread/lock_guard.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <mutex>
+#include <thread>
+#include <vector>
 
-// Adapted from: libs/thread/tutorial/counter.cpp
 // Use lock_guard to automatically lock and unlock a mutex.
 
-boost::mutex mutex;
-int count = 0;
+std::mutex g_mutex;
+int g_count = 0;
 
 void Counter() {
   // lock_guard acquires the lock in constructor and releases it in destructor.
-  boost::lock_guard<boost::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(g_mutex);
 
-  int i = ++count;
-  std::cout << "count == " << i << std::endl;
+  int i = ++g_count;
+  std::cout << "count: " << i << std::endl;
 }
 
 int main() {
-  boost::thread_group threads;
-  for (int i = 0; i < 4; ++i) {
-    threads.create_thread(&Counter);
+  const std::size_t SIZE = 4;
+
+  std::vector<std::thread> v;
+  v.reserve(SIZE);
+
+  for (std::size_t i = 0; i < SIZE; ++i) {
+    v.emplace_back(&Counter);
   }
 
-  threads.join_all();
+  for (std::thread& t : v) {
+    t.join();
+  }
+
   return 0;
 }

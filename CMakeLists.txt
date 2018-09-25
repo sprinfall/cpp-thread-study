@@ -1,50 +1,64 @@
-cmake_minimum_required(VERSION 2.8)
-project(boost_thread_study)
+cmake_minimum_required(VERSION 3.1.0)
 
-add_definitions(-DUNICODE -D_UNICODE)
-
-if(MSVC)
-    # Win7 (asio needs this)
-    add_definitions(-D_WIN32_WINNT=0x0601)
+if(POLICY CMP0074)
+    # find_package() uses <PackageName>_ROOT variables.
+    # This policy was introduced in CMake version 3.12.
+    cmake_policy(SET CMP0074 NEW)
 endif()
 
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS thread)
-if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-    link_directories(${Boost_LIBRARY_DIRS})
+project(cpp_thread_study)
+
+# Automatically detect _WIN32_WINNT for Asio.
+# See: https://stackoverflow.com/a/40217291
+if(WIN32)
+	macro(get_WIN32_WINNT version)
+		if(CMAKE_SYSTEM_VERSION)
+			set(ver ${CMAKE_SYSTEM_VERSION})
+			string(REGEX MATCH "^([0-9]+).([0-9])" ver ${ver})
+			string(REGEX MATCH "^([0-9]+)" verMajor ${ver})
+			# Check for Windows 10, b/c we'll need to convert to hex 'A'.
+			if("${verMajor}" MATCHES "10")
+				set(verMajor "A")
+				string(REGEX REPLACE "^([0-9]+)" ${verMajor} ver ${ver})
+			endif("${verMajor}" MATCHES "10")
+			# Remove all remaining '.' characters.
+			string(REPLACE "." "" ver ${ver})
+			# Prepend each digit with a zero.
+			string(REGEX REPLACE "([0-9A-Z])" "0\\1" ver ${ver})
+			set(${version} "0x${ver}")
+		endif(CMAKE_SYSTEM_VERSION)
+	endmacro(get_WIN32_WINNT)
+
+	get_WIN32_WINNT(ver)
+	# E.g., 0x0601 for Win7.
+	message(STATUS "_WIN32_WINNT=${ver}")
+    # Asio needs this!
+	add_definitions(-D_WIN32_WINNT=${ver})
+endif(WIN32)
+
+if(WIN32)
+    # Disable warning on boost string algorithms.
+    add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 endif()
 
-# Add target property.
-# Usage: ADD_TARGET_PROPERTY(target COMPILE_FLAGS "/we1234")
-macro(ADD_TARGET_PROPERTY target_name property_key property_value)
-    get_target_property(CTS_COMPILE_FLAGS ${target_name} ${property_key} )
-    #	message("t:${target_name} k:${property_key} v:${property_value} ${CTS_COMPILE_FLAGS}")
-    if(CTS_COMPILE_FLAGS STREQUAL CTS_COMPILE_FLAGS-NOTFOUND)
-        SET_TARGET_PROPERTIES(${target_name} PROPERTIES
-            ${property_key} ${property_value})
-    else()
-        SET_TARGET_PROPERTIES(${target_name} PROPERTIES
-            ${property_key} "${CTS_COMPILE_FLAGS} ${property_value}")
-    endif()
-endmacro()
+# C++ standard requirements.
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Common target setting.
-# Usage: COMMON_TARGET_SETTING(target)
-macro(COMMON_TARGET_SETTING target_name)
-    if(WIN32)
-        if(MSVC)
-            # treat c4239 c4482 c4715 as error, as these can cause error on gcc
-            # disable c4407 c4290
-            ADD_TARGET_PROPERTY(${target_name} COMPILE_FLAGS "/we4239 /we4482 /we4715 /wd4407 /wd4290")
-        endif()
-    endif()
-endmacro()
+# CMake 3.1.0+ required.
+# See: https://stackoverflow.com/a/29871891
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+# set(Boost_USE_STATIC_LIBS ON)
+# set(Boost_USE_MULTITHREADED ON)
+# find_package(Boost)
+# if(Boost_FOUND)
+#     include_directories(${Boost_INCLUDE_DIRS})
+#     link_directories(${Boost_LIBRARY_DIRS})
+# endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
-
-if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()
 
 add_subdirectory(src)

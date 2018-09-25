@@ -1,5 +1,5 @@
 #include <iostream>
-#include <boost/thread.hpp>
+#include <thread>
 
 class Counter {
 public:
@@ -10,7 +10,7 @@ public:
     while (value_ > 0) {
       std::cout << value_ << " ";
       --value_;
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << std::endl;
   }
@@ -20,14 +20,14 @@ private:
 };
 
 int main() {
-  boost::thread t1(Counter(3));
+  std::thread t1(Counter(3));
   t1.join();
 
-  boost::thread t2(Counter(3));
+  std::thread t2(Counter(3));
   t2.detach();
 
   // Wait for the detached t2 to finish.
-  boost::this_thread::sleep(boost::posix_time::seconds(4));
+  std::this_thread::sleep_for(std::chrono::seconds(4));
 
   return 0;
 }

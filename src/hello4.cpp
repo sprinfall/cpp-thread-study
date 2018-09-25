@@ -1,18 +1,18 @@
 #include <iostream>
-#include <boost/thread.hpp>
+#include <thread>
 
 // Create a thread by a member function.
 
 class Hello {
 public:
   Hello() {
-    boost::thread hello_thread(boost::bind(&Hello::Entry, this, "World"));
-    hello_thread.join();
+    std::thread t(std::bind(&Hello::Entry, this, "World"));
+    t.join();
   }
 
 private:
   void Entry(const char* what) {
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     std::cout << "Hello, " << what << "!" << std::endl;
   }
 };

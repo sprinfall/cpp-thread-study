@@ -1,31 +1,38 @@
 #include <iostream>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <mutex>
+#include <thread>
+#include <vector>
 
-// Adapted from: libs/thread/tutorial/counter.cpp
 // Lock and unlock a mutex directly.
 
-boost::mutex mutex;
-int count = 0;
+std::mutex g_mutex;
+int g_count = 0;
 
 void Counter() {
-  mutex.lock();
+  g_mutex.lock();
 
-  int i = ++count;
-  std::cout << "count == " << i << std::endl;
+  int i = ++g_count;
+  std::cout << "count: " << i << std::endl;
 
   // If any exception was thrown, unlock won't be called.
-  mutex.unlock();
+  g_mutex.unlock();
 }
 
 int main() {
+  const std::size_t SIZE = 4;
+
   // Create a group of counter threads.
-  boost::thread_group threads;
-  for (int i = 0; i < 4; ++i) {
-    threads.create_thread(&Counter);
+  std::vector<std::thread> v;
+  v.reserve(SIZE);
+
+  for (std::size_t i = 0; i < SIZE; ++i) {
+    v.emplace_back(&Counter);
   }
 
   // Wait for all the threads to finish.
-  threads.join_all();
+  for (std::thread& t : v) {
+    t.join();
+  }
+
   return 0;
 }

@@ -1,12 +1,12 @@
 #include <iostream>
-#include <boost/thread.hpp>
+#include <thread>
 
 // Create a thread by a function object (functor).
 
 class Hello {
 public:
   void operator()(const char* what) {
-    boost::this_thread::sleep(boost::posix_time::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     std::cout << "Hello, " << what << "!" << std::endl;
   }
 };
@@ -15,14 +15,14 @@ int main() {
   Hello hello;
 
   // Copy the thread object.
-  boost::thread hello_thread(hello, "World");
-  hello_thread.join();
+  std::thread t1(hello, "World");
+  t1.join();
 
-  // Don't copy the thread object, use boost::ref to pass in a reference.
+  // Don't copy the thread object, use std::ref to pass in a reference.
   // But the user must ensure that the referred-to object outlives the
-  // newly-created thread of execution. 
-  boost::thread hello_thread_ref(boost::ref(hello), "World");
-  hello_thread_ref.join();
+  // newly-created thread of execution.
+  std::thread t2(std::ref(hello), "World");
+  t2.join();
 
   return 0;
 }

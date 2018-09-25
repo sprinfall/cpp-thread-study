@@ -1,8 +1,11 @@
+#include <chrono>
+#include <condition_variable>
+#include <ctime>
 #include <iostream>
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
 // Implement semaphore based on mutex and condition variable.
 
@@ -16,71 +19,74 @@
 
 class Semaphore {
 public:
-  Semaphore(long count = 0)
-    : count_(count) {
+  explicit Semaphore(int count = 0) : count_(count) {
   }
 
   void Signal() {
-    boost::unique_lock<boost::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     ++count_;
     cv_.notify_one();
   }
 
   void Wait() {
-    boost::unique_lock<boost::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     cv_.wait(lock, [=] { return count_ > 0; });
     --count_;
   }
 
 private:
-  boost::mutex mutex_;
-  boost::condition_variable cv_;
-  long count_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  int count_;
 };
 
 Semaphore g_semaphore(3);
-boost::mutex g_io_mutex;
+std::mutex g_io_mutex;
 
-std::string FormatTime(boost::posix_time::ptime& time, const char* format) {
-  std::stringstream stream;
-  boost::posix_time::time_facet* facet = new boost::posix_time::time_facet();
-  facet->format(format);
-  stream.imbue(std::locale(std::locale::classic(), facet));
-  stream << time;
-  return stream.str();
+std::string FormatTimeNow(const char* format) {
+  auto now = std::chrono::system_clock::now();
+  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+  std::tm* now_tm = std::localtime(&now_c);
+
+  char buf[20];
+  std::strftime(buf, sizeof(buf), format, now_tm);
+  return std::string(buf);
 }
 
 void Worker() {
   g_semaphore.Wait();
 
-  boost::thread::id thread_id = boost::this_thread::get_id();
+  std::thread::id thread_id = std::this_thread::get_id();
 
-  std::string now = FormatTime(boost::posix_time::second_clock::local_time(), "%H:%M:%S");
+  std::string now = FormatTimeNow("%H:%M:%S");
   {
-    boost::lock_guard<boost::mutex> lock(g_io_mutex);
+    std::lock_guard<std::mutex> lock(g_io_mutex);
     std::cout << "Thread " << thread_id << ": wait succeeded" << " (" << now << ")" << std::endl;
   }
 
   // Sleep 1 second to simulate data processing.
-  boost::this_thread::sleep(boost::posix_time::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   g_semaphore.Signal();
 }
 
 int main() {
-  boost::thread_group threads;
-  for (int i = 0; i < 3; ++i) {
-    threads.create_thread(&Worker);
+  const std::size_t SIZE = 3;
+
+  std::vector<std::thread> v;
+  v.reserve(SIZE);
+
+  for (std::size_t i = 0; i < SIZE; ++i) {
+    v.emplace_back(&Worker);
   }
 
-  threads.join_all();
+  for (std::thread& t : v) {
+    t.join();
+  }
+
   return 0;
 }
 
 //Thread 1d38: wait succeeded (13:10:10)
 //Thread 20f4: wait succeeded (13:10:11)
 //Thread 2348: wait succeeded (13:10:12)
-
-//Thread 19f8: wait succeeded (13:10:57)
-//Thread 2030: wait succeeded (13:10:57)
-//Thread 199c: wait succeeded (13:10:57)
