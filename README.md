@@ -1,2 +1,2 @@
-# boost-thread-study
-Examples for C++ boost thread library.
+# cpp-thread-study
+Examples and tutorials for C++ thread library.
