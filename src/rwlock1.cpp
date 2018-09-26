@@ -12,7 +12,7 @@ public:
   }
 
   // Multiple threads/readers can read the counter's value at the same time.
-  size_t Get() const {
+  std::size_t Get() const {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     return value_;
   }
@@ -32,7 +32,7 @@ public:
 
 private:
   mutable std::shared_mutex mutex_;
-  size_t value_;
+  std::size_t value_;
 };
 
 std::mutex g_io_mutex;
@@ -40,7 +40,7 @@ std::mutex g_io_mutex;
 void Worker(Counter& counter) {
   for (int i = 0; i < 3; ++i) {
     counter.Increase();
-    size_t value = counter.Get();
+    std::size_t value = counter.Get();
 
     std::lock_guard<std::mutex> lock(g_io_mutex);
     std::cout << std::this_thread::get_id() << ' ' << value << std::endl;
