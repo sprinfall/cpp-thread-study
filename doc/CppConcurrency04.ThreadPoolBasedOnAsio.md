@@ -84,15 +84,15 @@ int main() {
 
 输出（每次都不一样）：
 ```
-// Hello(0)
-// Hello(1)
-// Hello(2)
-// Hello(3)
-// <Wait about 1 second>
-// World(3)
-// World(2)
-// World(1)
-// World(0)
+Hello(0)
+Hello(1)
+Hello(2)
+Hello(3)
+<Wait about 1 second>
+World(3)
+World(2)
+World(1)
+World(0)
 ```
 
 参考：
