@@ -12,6 +12,7 @@ add_executable(mutex4 mutex4.cpp)
 
 add_executable(cv1 cv1.cpp)
 add_executable(cv2 cv2.cpp)
+add_executable(cv3_timed cv3_timed.cpp)
 
 add_executable(bounded_buffer bounded_buffer.cpp)
 
