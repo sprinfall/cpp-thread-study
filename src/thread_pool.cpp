@@ -4,7 +4,6 @@
 #include <thread>
 #include <vector>
 
-#define BOOST_ASIO_NO_DEPRECATED
 #include "boost/asio.hpp"
 
 // Boost doc of io_context::run says:

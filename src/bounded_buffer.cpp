@@ -32,7 +32,7 @@ public:
   void Produce(int n) {
     {
       std::unique_lock<std::mutex> lock(mutex_);
-      not_full_cv_.wait(lock, [=] { return buffered_ < circular_buffer_.size(); });
+      not_full_cv_.wait(lock, [this] { return buffered_ < circular_buffer_.size(); });
 
       circular_buffer_[end_] = n;
       end_ = (end_ + 1) % circular_buffer_.size();
@@ -45,7 +45,7 @@ public:
 
   int Consume() {
     std::unique_lock<std::mutex> lock(mutex_);
-    not_empty_cv_.wait(lock, [=] { return buffered_ > 0; });
+    not_empty_cv_.wait(lock, [this] { return buffered_ > 0; });
 
     int n = circular_buffer_[begin_];
     begin_ = (begin_ + 1) % circular_buffer_.size();
