@@ -1,6 +1,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <ctime>
+#include <functional>
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -19,17 +20,17 @@
 
 class Semaphore {
 public:
-  explicit Semaphore(int count = 0) : count_(count) {
+  explicit Semaphore(int count) : count_(count) {
   }
 
   void Signal() {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock{ mutex_ };
     ++count_;
     cv_.notify_one();
   }
 
   void Wait() {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock{ mutex_ };
     cv_.wait(lock, [this] { return count_ > 0; });
     --count_;
   }
@@ -40,44 +41,41 @@ private:
   int count_;
 };
 
-Semaphore g_semaphore(3);
-std::mutex g_io_mutex;
+std::mutex g_cout_mutex;
 
-std::string FormatTimeNow(const char* format) {
-  auto now = std::chrono::system_clock::now();
-  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-  std::tm* now_tm = std::localtime(&now_c);
-
+std::string GetTimestamp() {
+  std::time_t t = std::time(nullptr);
+  std::tm* tm = std::localtime(&t);
   char buf[20];
-  std::strftime(buf, sizeof(buf), format, now_tm);
+  std::strftime(buf, sizeof(buf), "%H:%M:%S", tm);
   return std::string(buf);
 }
 
-void Worker() {
-  g_semaphore.Wait();
+void Worker(Semaphore& semaphore) {
+  semaphore.Wait();
 
   std::thread::id thread_id = std::this_thread::get_id();
+  std::string timestamp = GetTimestamp();
 
-  std::string now = FormatTimeNow("%H:%M:%S");
-  {
-    std::lock_guard<std::mutex> lock(g_io_mutex);
-    std::cout << "Thread " << thread_id << ": wait succeeded" << " (" << now << ")" << std::endl;
-  }
+  g_cout_mutex.lock();
+  std::cout << thread_id << ": wait succeeded (" << timestamp << ")"
+            << std::endl;
+  g_cout_mutex.unlock();
 
   // Sleep 1 second to simulate data processing.
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  g_semaphore.Signal();
+  semaphore.Signal();
 }
 
 int main() {
-  const std::size_t SIZE = 3;
+  // Please try other count values (e.g., 3) and note the timestamp changes in
+  // the output.
+  Semaphore semaphore{ 1 };
 
   std::vector<std::thread> v;
-  v.reserve(SIZE);
-
-  for (std::size_t i = 0; i < SIZE; ++i) {
-    v.emplace_back(&Worker);
+  for (std::size_t i = 0; i < 3; ++i) {
+    v.emplace_back(std::bind(&Worker, std::ref(semaphore)));
   }
 
   for (std::thread& t : v) {
@@ -87,6 +85,7 @@ int main() {
   return 0;
 }
 
-//Thread 1d38: wait succeeded (13:10:10)
-//Thread 20f4: wait succeeded (13:10:11)
-//Thread 2348: wait succeeded (13:10:12)
+// Output example (if semaphore count == 1):
+// 1d38: wait succeeded (13:10:10)
+// 20f4: wait succeeded (13:10:11)
+// 2348: wait succeeded (13:10:12)

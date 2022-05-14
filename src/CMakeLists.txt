@@ -19,8 +19,6 @@ add_executable(bounded_buffer bounded_buffer.cpp)
 add_executable(semaphore_win32 semaphore_win32.cpp)
 add_executable(semaphore semaphore.cpp)
 
-add_executable(thread_pool thread_pool.cpp)
-
 add_executable(rwlock1 rwlock1.cpp)
 
 # upgrade_lock is Boost only.
