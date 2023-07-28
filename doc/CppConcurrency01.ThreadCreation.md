@@ -85,7 +85,7 @@ int main() {
   // 用户必须保证被线程引用的函数对象，拥有超出线程的生命期。
   // 比如这里通过 join 线程保证了这一点。 
   std::thread t2(std::ref(hello), "World");
-  t2.
+  t2.join();
 
   return 0;
 }
